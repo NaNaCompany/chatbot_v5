@@ -678,7 +678,7 @@
             <!-- Initial Greeting -->
             <div class="message ai">
                 <div class="sender">AI Assistant</div>
-                <div class="bubble">안녕하세요! 무엇을 도와드릴까요?<br>PDF 파일을 업로드하시면 내용을 참고해서 답변해드릴 수 있습니다.</div>
+                <div class="bubble">안녕하세요! 무엇을 도와드릴까요?<br>PDF 파일을 업로드하시면 내용을 참고해서 답변해드릴 수 있습니다.<br>하단 돋보기 버튼을 눌러 구글 검색 기능을 활성화할 수 있습니다.</div>
             </div>
 
             <!-- Typing Indicator -->
@@ -823,9 +823,9 @@
         };
 
         // Your Gemini API Key
-        const API_KEY = window.ENV.GEMINI_API_KEY;
-        const GOOGLE_API_KEY = window.ENV.GOOGLE_API_KEY;
-        const GOOGLE_SEARCH_ENGINE_ID = window.ENV.GOOGLE_SEARCH_ENGINE_ID;
+        const API_KEY = window.CONFIG.GEMINI_API_KEY;
+        const GOOGLE_API_KEY = window.CONFIG.GOOGLE_API_KEY;
+        const GOOGLE_SEARCH_ENGINE_ID = window.CONFIG.GOOGLE_SEARCH_ENGINE_ID;
 
         // Search Toggle Logic
         searchToggleBtn.onclick = () => {
