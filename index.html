@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaNa.ai</title>
+    <!-- PDF.js Global Worker -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="config.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --chat-bg: #1e293b;
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --ai-msg-bg: rgba(30, 41, 59, 0.7);
+            --user-msg-text: #ffffff;
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+            --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 20%);
+        }
+
+        /* Container */
+        .container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: var(--glass-border);
+            border-right: var(--glass-border);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (max-width: 800px) {
+            .container {
+                border: none;
+            }
+        }
+
+        /* Header */
+        header {
+            padding: 20px 30px;
+            border-bottom: var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.8);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .sound-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .sound-btn:hover {
+            color: #fff;
+        }
+
+        .sound-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .sound-btn.off svg path.sound-on {
+            display: none;
+        }
+
+        .sound-btn.off svg path.sound-off {
+            display: block;
+        }
+
+        .sound-btn:not(.off) svg path.sound-on {
+            display: block;
+        }
+
+        .sound-btn:not(.off) svg path.sound-off {
+            display: none;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Summary Button */
+        .summary-btn {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 12px;
+            display: none;
+            /* Hidden by default */
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            height: 32px;
+            width: auto;
+        }
+
+        .summary-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .summary-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal {
+            background: #1e293b;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            border-radius: 16px;
+            border: var(--glass-border);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            width: auto;
+            height: auto;
+        }
+
+        .modal-close:hover {
+            color: white;
+            background: none;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            color: var(--text-color);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            width: auto;
+            height: 40px;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            width: auto;
+            height: 40px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            .modal-overlay,
+            .modal-overlay * {
+                visibility: visible;
+            }
+
+            .modal-overlay {
+                position: absolute;
+                left: 0;
+                top: 0;
+                background: white;
+                backdrop-filter: none;
+                width: 100%;
+                height: 100%;
+                display: block;
+                padding: 0;
+            }
+
+            .modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+                max-height: none;
+                box-shadow: none;
+                border: none;
+                transform: none !important;
+                background: white;
+                color: black;
+            }
+
+            .modal-header,
+            .modal-footer,
+            .modal-close {
+                display: none;
+            }
+
+            .modal-body {
+                color: black;
+                font-size: 12pt;
+                padding: 0;
+                overflow: visible;
+            }
+
+            /* Reset root vars for print if needed */
+            :root {
+                --text-color: black;
+            }
+        }
+
+        /* Chat Area */
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        /* Messages */
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+            opacity: 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .bubble {
+            padding: 14px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .message.user .bubble {
+            background: var(--primary-gradient);
+            color: var(--user-msg-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .bubble {
+            background: var(--ai-msg-bg);
+            color: var(--text-color);
+            border: var(--glass-border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .sender {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            margin-left: 4px;
+        }
+
+        .message.user .sender {
+            margin-right: 4px;
+        }
+
+        /* File Attachment Indicator */
+        .file-indicator {
+            display: none;
+            padding: 8px 16px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            color: #a5b4fc;
+            font-size: 0.9rem;
+            align-items: center;
+            justify-content: space-between;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .file-indicator.active {
+            display: flex;
+        }
+
+        .file-remove-btn {
+            background: none;
+            border: none;
+            color: #a5b4fc;
+            cursor: pointer;
+            padding: 4px;
+            margin-left: 8px;
+            width: auto;
+            height: auto;
+        }
+
+        .file-remove-btn:hover {
+            color: #fff;
+            background: none;
+            transform: none;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px 30px 30px;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-container {
+            position: relative;
+            background: rgba(30, 41, 59, 1);
+            border: var(--glass-border);
+            border-radius: 16px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .input-container:focus-within {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.2);
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1rem;
+            padding: 12px 16px;
+            outline: none;
+        }
+
+        input[type="text"]::placeholder {
+            color: #475569;
+        }
+
+        button {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        /* Specific styles for Buttons */
+        #mic-btn,
+        #attach-btn {
+            background: transparent;
+            color: var(--text-color);
+            margin-right: 2px;
+            border: 1px solid transparent;
+        }
+
+        #mic-btn:hover,
+        #attach-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #mic-btn.listening {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+            animation: pulse-red 1.5s infinite;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            gap: 4px;
+            padding: 16px 20px;
+            background: var(--ai-msg-bg);
+            border-radius: 20px;
+            border-bottom-left-radius: 4px;
+            border: var(--glass-border);
+            width: fit-content;
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        #hidden-file-input {
+            display: none;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <a href="https://nanalab.kr" target="_blank"><img src="logo.png" alt="NaNa.ai Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;"></a>
+                NaNa.ai
+            </div>
+            <div class="status">
+                <button class="sound-btn" id="sound-btn" title="소리 켜기/끄기">
+                    <svg viewBox="0 0 24 24">
+                        <path class="sound-on"
+                            d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z">
+                        </path>
+                        <path class="sound-off"
+                            d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z">
+                        </path>
+                    </svg>
+                </button>
+                <button id="summary-btn" class="summary-btn" onclick="summarizeConversation()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    대화 요약
+                </button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-dot"></span>
+                    Online
+                </div>
+            </div>
+        </header>
+
+        <div id="chat-window">
+            <!-- Initial Greeting -->
+            <div class="message ai">
+                <div class="sender">AI Assistant</div>
+                <div class="bubble">안녕하세요! 무엇을 도와드릴까요?<br>PDF 파일을 업로드하시면 내용을 참고해서 답변해드릴 수 있습니다.</div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="file-indicator" id="file-indicator">
+                <span id="file-name">filename.pdf</span>
+                <button class="file-remove-btn" onclick="clearFile()" title="파일 제거">✕</button>
+            </div>
+
+            <div class="input-container">
+                <input type="file" id="hidden-file-input" accept="application/pdf">
+                <button id="attach-btn" title="PDF 파일 첨부"
+                    onclick="document.getElementById('hidden-file-input').click()">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                        </path>
+                    </svg>
+                </button>
+                <button id="mic-btn" title="음성 인식 시작">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </button>
+                <input type="text" id="user-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+                <button id="search-toggle-btn" title="구글 검색 (꺼짐)" style="margin-right: 4px;">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <button onclick="sendMessage()" id="send-btn">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    대화 요약
+                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Summary content will go here -->
+                요약 중입니다...
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">닫기</button>
+                <button class="btn-primary" onclick="printSummary()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    인쇄하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const micBtn = document.getElementById('mic-btn');
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const soundBtn = document.getElementById('sound-btn');
+        const fileInput = document.getElementById('hidden-file-input');
+        const fileIndicator = document.getElementById('file-indicator');
+        const fileNameSpan = document.getElementById('file-name');
+
+        let isSoundOn = true; // Default On
+        let isSearchEnabled = false; // Default Off
+        let currentPDFContext = ""; // Store extracted PDF text
+
+        // Sound Toggle
+        soundBtn.onclick = () => {
+            isSoundOn = !isSoundOn;
+            if (isSoundOn) {
+                soundBtn.classList.remove('off');
+            } else {
+                soundBtn.classList.add('off');
+                window.speechSynthesis.cancel();
+            }
+        };
+
+        function speakText(text) {
+            if (!isSoundOn) return;
+
+            // Stop any previous speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            // Try to find a Korean voice
+            const voices = window.speechSynthesis.getVoices();
+            const korVoice = voices.find(v => v.lang.includes('ko'));
+            if (korVoice) utterance.voice = korVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Ensure voices are loaded (some browsers load async)
+        window.speechSynthesis.onvoiceschanged = () => {
+            // Just trigger a re-check if needed, nothing specific here
+        };
+
+        // Your Gemini API Key
+        const API_KEY = window.ENV.GEMINI_API_KEY;
+        const GOOGLE_API_KEY = window.ENV.GOOGLE_API_KEY;
+        const GOOGLE_SEARCH_ENGINE_ID = window.ENV.GOOGLE_SEARCH_ENGINE_ID;
+
+        // Search Toggle Logic
+        searchToggleBtn.onclick = () => {
+            isSearchEnabled = !isSearchEnabled;
+            if (isSearchEnabled) {
+                searchToggleBtn.style.color = '#fff';
+                searchToggleBtn.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
+                searchToggleBtn.title = "구글 검색 (켜짐)";
+                userInput.placeholder = "구글 검색어와 함께 메시지를 입력하세요...";
+            } else {
+                searchToggleBtn.style.color = 'var(--text-color)';
+                searchToggleBtn.style.backgroundColor = 'transparent';
+                searchToggleBtn.title = "구글 검색 (꺼짐)";
+                userInput.placeholder = "메시지를 입력하세요...";
+            }
+        };
+
+        async function searchGoogle(query) {
+            if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID || GOOGLE_API_KEY === 'YOUR_GOOGLE_API_KEY') {
+                console.warn("Google Search Keys not configured.");
+                return null;
+            }
+
+            const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.items && data.items.length > 0) {
+                    let searchResults = "Here are the top search results from Google:\n\n";
+                    data.items.slice(0, 3).forEach((item, index) => {
+                        searchResults += `${index + 1}. [${item.title}](${item.link})\n${item.snippet}\n\n`;
+                    });
+                    return searchResults;
+                } else {
+                    return "No search results found.";
+                }
+            } catch (error) {
+                console.error("Google Search Error:", error);
+                return null;
+            }
+        }
+
+        // PDF Handling
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                if (file.type !== 'application/pdf') {
+                    alert('PDF 파일만 업로드 가능합니다.');
+                    return;
+                }
+
+                fileNameSpan.textContent = file.name;
+                fileIndicator.classList.add('active');
+                document.getElementById('summary-btn').style.display = 'flex'; // Show summary button
+
+                // Show extracting message
+                userInput.placeholder = "PDF 내용을 읽는 중...";
+                userInput.disabled = true;
+
+                try {
+                    currentPDFContext = await extractTextFromPDF(file);
+                    userInput.placeholder = "PDF 내용과 함께 메시지를 보내세요...";
+                    console.log("PDF extracted length:", currentPDFContext.length);
+                } catch (err) {
+                    console.error('PDF extraction error:', err);
+                    alert('PDF 내용을 읽는데 실패했습니다.');
+                    clearFile();
+                } finally {
+                    userInput.disabled = false;
+                }
+            }
+        });
+
+        function clearFile() {
+            fileInput.value = '';
+            currentPDFContext = '';
+            fileIndicator.classList.remove('active');
+            document.getElementById('summary-btn').style.display = 'none'; // Hide summary button
+            userInput.placeholder = "메시지를 입력하세요...";
+        }
+
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            let fullText = "";
+
+            // Limit pages if needed, but trying all for now (watch out for token limits)
+            const maxPages = pdf.numPages;
+
+            for (let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += `[Page ${i}] ${pageText}\n\n`;
+            }
+
+            return fullText;
+        }
+
+        // Voice Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR'; // Korean
+            recognition.continuous = false;
+            recognition.interimResults = true; // Enable real-time typing
+
+            micBtn.onclick = () => {
+                if (micBtn.classList.contains('listening')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            };
+
+            recognition.onstart = () => {
+                micBtn.classList.add('listening');
+                userInput.placeholder = "듣고 있어요... 말씀해 주세요.";
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+                userInput.placeholder = currentPDFContext ? "PDF 내용과 함께 메시지를 보내세요..." : "메시지를 입력하세요...";
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    transcript += event.results[i][0].transcript;
+                }
+                userInput.value = transcript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                micBtn.classList.remove('listening');
+                userInput.placeholder = "오류가 발생했습니다.";
+            };
+        } else {
+            micBtn.style.display = 'none';
+            console.warn("Web Speech API not supported in this browser.");
+        }
+
+        // Handle Enter key
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (text === '') return;
+
+            // 1. Add User Message
+            appendMessage('user', text);
+            userInput.value = '';
+
+            // 2. Show Typing Indicator
+            showTypingIndicator();
+
+            // 3. Call Gemini API
+            try {
+                // Combine PDF context if available
+                let finalPrompt = text;
+                let searchContext = "";
+
+                if (isSearchEnabled) {
+                    appendMessage('ai', "🔍 구글 검색 중...");
+                    const searchResult = await searchGoogle(text);
+                    if (searchResult) {
+                        searchContext = `\n\n[Google Search Results]\n${searchResult}\n\n`;
+                        // Remove the loading message (optional, but keep it simple for now)
+                    } else {
+                        appendMessage('ai', "⚠️ 검색 설정을 확인해주세요 (API Key). 검색 없이 진행합니다.");
+                    }
+                }
+
+                if (currentPDFContext || searchContext) {
+                    finalPrompt = `다음은 참고할 수 있는 추가 정보입니다:\n\n`;
+                    if (currentPDFContext) finalPrompt += `[PDF 문서 내용]\n${currentPDFContext}\n\n`;
+                    if (searchContext) finalPrompt += `${searchContext}\n\n`;
+
+                    finalPrompt += `위 정보를 참고하여 다음 질문에 답해주세요:\n${text}`;
+                }
+
+                const responseText = await callGeminiAPI(finalPrompt);
+                hideTypingIndicator();
+                appendMessage('ai', responseText);
+                speakText(responseText); // Speak the API response
+            } catch (error) {
+                hideTypingIndicator();
+                appendMessage('ai', "죄송합니다. 오류가 발생했습니다: " + error.message);
+                console.error(error);
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+
+            const senderName = sender === 'user' ? 'You' : 'AI Assistant';
+
+            // Convert Markdown-style bold/italic/newlines to HTML
+            let formattedText = text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            msgDiv.innerHTML = `
+            <div class="sender">${senderName}</div>
+            <div class="bubble">${formattedText}</div>
+        `;
+
+            // Insert before typing indicator
+            chatWindow.insertBefore(msgDiv, typingIndicator);
+
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function scrollToBottom() {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function callGeminiAPI(prompt) {
+            // Using gemini-flash-latest which is confirmed to be available for this key
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: prompt }]
+                }]
+            };
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`API Error: ${response.status} - ${errorBody}`);
+            }
+
+            const data = await response.json();
+
+            // Extract text from Gemini response structure
+            const candidates = data.candidates;
+            if (candidates && candidates.length > 0) {
+                return candidates[0].content.parts[0].text;
+            } else {
+                return "대답을 생성하지 못했습니다.";
+            }
+        }
+
+        // Summary Feature Logic
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalBody = document.getElementById('modal-body');
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        function printSummary() {
+            window.print();
+        }
+
+        async function summarizeConversation() {
+            if (!currentPDFContext) {
+                alert("요약할 PDF 파일이 없습니다.");
+                return;
+            }
+
+            modalOverlay.classList.add('active');
+            modalBody.innerHTML = '<div style="text-align:center; padding: 20px;">문서를 분석하고 대화를 요약하는 중입니다...<br><br><div class="dot" style="display:inline-block"></div><div class="dot" style="display:inline-block"></div><div class="dot" style="display:inline-block"></div></div>';
+
+            try {
+                // Collect conversation history
+                const messages = Array.from(chatWindow.getElementsByClassName('message'));
+                let conversationText = "";
+
+                messages.forEach(msg => {
+                    const isUser = msg.classList.contains('user');
+                    const text = msg.querySelector('.bubble').innerText; // Using innerText to get clean text
+                    conversationText += `${isUser ? "User" : "AI"}: ${text}\n`;
+                });
+
+                if (conversationText.trim() === "") {
+                    modalBody.innerHTML = "대화 내용이 없습니다.";
+                    return;
+                }
+
+                // Construct Prompt
+                const summaryPrompt = `
+다음은 사용자와의 대화 내용입니다. 이 대화는 업로드된 PDF 내용을 바탕으로 진행되었습니다.
+사용자가 나중에 중요하게 참고할 수 있도록, 질문과 답변을 요약해서 정리해주세요.
+PDF의 핵심 내용과 사용자가 궁금해했던 점을 중심으로 요약 보고서를 작성해 주세요.
+출력 형식은 깔끔한 Markdown 형식(헤더, 불렛 포인트 등 사용)으로 작성해 주세요.
+
+--- 대화 내용 ---
+${conversationText}
+`;
+
+                const summary = await callGeminiAPI(summaryPrompt);
+
+                // Convert Markdown to HTML for display
+                const htmlSummary = summary
+                    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                    .replace(/\n/g, '<br>');
+
+                modalBody.innerHTML = htmlSummary;
+
+            } catch (error) {
+                modalBody.innerHTML = `<div style="color: #ef4444;">요약 중 오류가 발생했습니다.<br>${error.message}</div>`;
+                console.error(error);
+            }
+        }
+
+        // Close modal when clicking outside
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
