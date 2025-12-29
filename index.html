@@ -125,22 +125,26 @@
         .sound-btn svg {
             width: 20px;
             height: 20px;
-            fill: currentColor;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        .sound-btn.off svg path.sound-on {
+        .sound-btn.off svg .sound-on {
             display: none;
         }
 
-        .sound-btn.off svg path.sound-off {
+        .sound-btn.off svg .sound-off {
             display: block;
         }
 
-        .sound-btn:not(.off) svg path.sound-on {
+        .sound-btn:not(.off) svg .sound-on {
             display: block;
         }
 
-        .sound-btn:not(.off) svg path.sound-off {
+        .sound-btn:not(.off) svg .sound-off {
             display: none;
         }
 
@@ -643,18 +647,21 @@
     <div class="container">
         <header>
             <div class="logo">
-                <a href="https://nanalab.kr/apps" target="_blank"><img src="logo.png" alt="NaNa.ai Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;"></a>
+                <a href="https://nanalab.kr" target="_blank"><img src="logo.png" alt="NaNa.ai Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;"></a>
                 NaNa.ai
             </div>
             <div class="status">
                 <button class="sound-btn" id="sound-btn" title="소리 켜기/끄기">
                     <svg viewBox="0 0 24 24">
-                        <path class="sound-on"
-                            d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z">
-                        </path>
-                        <path class="sound-off"
-                            d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z">
-                        </path>
+                        <g class="sound-on">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </g>
+                        <g class="sound-off">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <line x1="23" y1="9" x2="17" y2="15"></line>
+                            <line x1="17" y1="9" x2="23" y2="15"></line>
+                        </g>
                     </svg>
                 </button>
                 <button id="summary-btn" class="summary-btn" onclick="summarizeConversation()">
@@ -678,7 +685,7 @@
             <!-- Initial Greeting -->
             <div class="message ai">
                 <div class="sender">AI Assistant</div>
-                <div class="bubble">안녕하세요! 무엇을 도와드릴까요?<br>PDF 파일을 업로드하시면 내용을 참고해서 답변해드릴 수 있습니다.<br>하단 돋보기 버튼을 눌러 구글 검색 기능을 활성화할 수 있습니다.</div>
+                <div class="bubble">안녕하세요! 무엇을 도와드릴까요?<br>PDF 파일을 업로드하시면 내용을 참고해서 답변해드릴 수 있습니다.</div>
             </div>
 
             <!-- Typing Indicator -->
@@ -823,9 +830,9 @@
         };
 
         // Your Gemini API Key
-        const API_KEY = window.CONFIG.GEMINI_API_KEY;
-        const GOOGLE_API_KEY = window.CONFIG.GOOGLE_API_KEY;
-        const GOOGLE_SEARCH_ENGINE_ID = window.CONFIG.GOOGLE_SEARCH_ENGINE_ID;
+        const API_KEY = window.ENV.GEMINI_API_KEY;
+        const GOOGLE_API_KEY = window.ENV.GOOGLE_API_KEY;
+        const GOOGLE_SEARCH_ENGINE_ID = window.ENV.GOOGLE_SEARCH_ENGINE_ID;
 
         // Search Toggle Logic
         searchToggleBtn.onclick = () => {
