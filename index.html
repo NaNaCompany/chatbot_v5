@@ -647,7 +647,7 @@
     <div class="container">
         <header>
             <div class="logo">
-                <a href="https://nanalab.kr" target="_blank"><img src="logo.png" alt="NaNa.ai Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;"></a>
+                <a href="https://nanalab.kr/apps" target="_blank"><img src="logo.png" alt="NaNa.ai Logo" style="height: 32px; vertical-align: middle; margin-right: 8px;"></a>
                 NaNa.ai
             </div>
             <div class="status">
@@ -712,6 +712,12 @@
                         </path>
                     </svg>
                 </button>
+                <button id="search-btn" title="Google 검색 그라운딩 켜기/끄기">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
                 <button id="mic-btn" title="음성 인식 시작">
                     <svg viewBox="0 0 24 24">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -721,12 +727,6 @@
                     </svg>
                 </button>
                 <input type="text" id="user-input" placeholder="메시지를 입력하세요..." autocomplete="off">
-                <button id="search-toggle-btn" title="구글 검색 (꺼짐)" style="margin-right: 4px;">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </button>
                 <button onclick="sendMessage()" id="send-btn">
                     <svg viewBox="0 0 24 24">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -736,7 +736,6 @@
             </div>
         </div>
     </div>
-
     <!-- Summary Modal -->
     <div class="modal-overlay" id="modal-overlay">
         <div class="modal">
@@ -784,15 +783,27 @@
         const userInput = document.getElementById('user-input');
         const typingIndicator = document.getElementById('typing-indicator');
         const micBtn = document.getElementById('mic-btn');
-        const searchToggleBtn = document.getElementById('search-toggle-btn');
         const soundBtn = document.getElementById('sound-btn');
+        const searchBtn = document.getElementById('search-btn'); // New Search Button
         const fileInput = document.getElementById('hidden-file-input');
         const fileIndicator = document.getElementById('file-indicator');
         const fileNameSpan = document.getElementById('file-name');
 
         let isSoundOn = true; // Default On
-        let isSearchEnabled = false; // Default Off
         let currentPDFContext = ""; // Store extracted PDF text
+        let isSearchEnabled = false; // Default Search Off
+
+        // Search Toggle
+        searchBtn.onclick = () => {
+            isSearchEnabled = !isSearchEnabled;
+            if (isSearchEnabled) {
+                searchBtn.classList.add('active');
+                userInput.placeholder = "Google 검색이 켜졌습니다. 최신 정보를 질문하세요!";
+            } else {
+                searchBtn.classList.remove('active');
+                userInput.placeholder = "메시지를 입력하세요...";
+            }
+        };
 
         // Sound Toggle
         soundBtn.onclick = () => {
@@ -831,51 +842,6 @@
 
         // Your Gemini API Key
         const API_KEY = window.CONFIG.GEMINI_API_KEY;
-        const GOOGLE_API_KEY = window.CONFIG.GOOGLE_API_KEY;
-        const GOOGLE_SEARCH_ENGINE_ID = window.CONFIG.GOOGLE_SEARCH_ENGINE_ID;
-
-        // Search Toggle Logic
-        searchToggleBtn.onclick = () => {
-            isSearchEnabled = !isSearchEnabled;
-            if (isSearchEnabled) {
-                searchToggleBtn.style.color = '#fff';
-                searchToggleBtn.style.backgroundColor = 'rgba(99, 102, 241, 0.4)';
-                searchToggleBtn.title = "구글 검색 (켜짐)";
-                userInput.placeholder = "구글 검색어와 함께 메시지를 입력하세요...";
-            } else {
-                searchToggleBtn.style.color = 'var(--text-color)';
-                searchToggleBtn.style.backgroundColor = 'transparent';
-                searchToggleBtn.title = "구글 검색 (꺼짐)";
-                userInput.placeholder = "메시지를 입력하세요...";
-            }
-        };
-
-        async function searchGoogle(query) {
-            if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID || GOOGLE_API_KEY === 'YOUR_GOOGLE_API_KEY') {
-                console.warn("Google Search Keys not configured.");
-                return null;
-            }
-
-            const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
-
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (data.items && data.items.length > 0) {
-                    let searchResults = "Here are the top search results from Google:\n\n";
-                    data.items.slice(0, 3).forEach((item, index) => {
-                        searchResults += `${index + 1}. [${item.title}](${item.link})\n${item.snippet}\n\n`;
-                    });
-                    return searchResults;
-                } else {
-                    return "No search results found.";
-                }
-            } catch (error) {
-                console.error("Google Search Error:", error);
-                return null;
-            }
-        }
 
         // PDF Handling
         fileInput.addEventListener('change', async (e) => {
@@ -913,7 +879,7 @@
             currentPDFContext = '';
             fileIndicator.classList.remove('active');
             document.getElementById('summary-btn').style.display = 'none'; // Hide summary button
-            userInput.placeholder = "메시지를 입력하세요...";
+            userInput.placeholder = isSearchEnabled ? "Google 검색이 켜졌습니다..." : "메시지를 입력하세요...";
         }
 
         async function extractTextFromPDF(file) {
@@ -959,7 +925,8 @@
 
             recognition.onend = () => {
                 micBtn.classList.remove('listening');
-                userInput.placeholder = currentPDFContext ? "PDF 내용과 함께 메시지를 보내세요..." : "메시지를 입력하세요...";
+                userInput.placeholder = currentPDFContext ? "PDF 내용과 함께 메시지를 보내세요..." :
+                    (isSearchEnabled ? "Google 검색이 켜졌습니다..." : "메시지를 입력하세요...");
             };
 
             recognition.onresult = (event) => {
@@ -1002,25 +969,11 @@
             try {
                 // Combine PDF context if available
                 let finalPrompt = text;
-                let searchContext = "";
-
-                if (isSearchEnabled) {
-                    appendMessage('ai', "🔍 구글 검색 중...");
-                    const searchResult = await searchGoogle(text);
-                    if (searchResult) {
-                        searchContext = `\n\n[Google Search Results]\n${searchResult}\n\n`;
-                        // Remove the loading message (optional, but keep it simple for now)
-                    } else {
-                        appendMessage('ai', "⚠️ 검색 설정을 확인해주세요 (API Key). 검색 없이 진행합니다.");
-                    }
-                }
-
-                if (currentPDFContext || searchContext) {
-                    finalPrompt = `다음은 참고할 수 있는 추가 정보입니다:\n\n`;
-                    if (currentPDFContext) finalPrompt += `[PDF 문서 내용]\n${currentPDFContext}\n\n`;
-                    if (searchContext) finalPrompt += `${searchContext}\n\n`;
-
-                    finalPrompt += `위 정보를 참고하여 다음 질문에 답해주세요:\n${text}`;
+                // If using search tool, we usually just pass the prompt. 
+                // But if PDF is present, we might want to prioritize PDF or allow both. 
+                // For now, if PDF is present, let's keep the context injection.
+                if (currentPDFContext) {
+                    finalPrompt = `다음은 사용자가 업로드한 PDF 문서의 내용입니다:\n\n---\n${currentPDFContext}\n---\n\n위 문서를 참고하여 다음 질문에 답해주세요:\n${text}`;
                 }
 
                 const responseText = await callGeminiAPI(finalPrompt);
@@ -1041,10 +994,17 @@
             const senderName = sender === 'user' ? 'You' : 'AI Assistant';
 
             // Convert Markdown-style bold/italic/newlines to HTML
+            // Simple robust replacement for demo
             let formattedText = text
                 .replace(/\n/g, '<br>')
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Handle Google Search citations if they look like [Source](url) - standard Gemini output often includes markdown links
+            // We can add a simple link parser too or trust browser to not render raw links unless we expand regex.
+            // For now, let's update regex to support basic markdown links [text](url) -> <a href="url" target="_blank">text</a>
+            formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline;">$1</a>');
+
 
             msgDiv.innerHTML = `
             <div class="sender">${senderName}</div>
@@ -1071,14 +1031,26 @@
         }
 
         async function callGeminiAPI(prompt) {
-            // Using gemini-flash-latest which is confirmed to be available for this key
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+            // Use gemini-1.5-flash for Search Grounding (tools support)
+            // Or 'gemini-1.5-pro' if preferred, but flash is faster/cheaper.
+            const model = "gemini-2.5-flash";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
             const payload = {
                 contents: [{
                     parts: [{ text: prompt }]
                 }]
             };
+
+            // Add Tools if Search is Enabled
+            if (isSearchEnabled) {
+                payload.tools = [
+                    {
+                        googleSearch: {}
+                    }
+                ];
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -1097,7 +1069,22 @@
             // Extract text from Gemini response structure
             const candidates = data.candidates;
             if (candidates && candidates.length > 0) {
-                return candidates[0].content.parts[0].text;
+                // Check if there is groundwork grounding metadata (optional to display, but text part usually contains the answer)
+                let responseText = candidates[0].content.parts[0].text;
+
+                // Sometimes the model returns multiple parts if tool code is used, but for search it's usually just text
+                // However, let's join all text parts just in case
+                if (candidates[0].content.parts.length > 1) {
+                    responseText = candidates[0].content.parts
+                        .map(part => part.text || "")
+                        .join("\n");
+                }
+
+                // Add Grounding Metadata simplified view if available? 
+                // Gemini Search usually embeds citation indices in text, and groundingChunk in metadata.
+                // For simplicity in this demo, we just show the text which should have citations.
+
+                return responseText;
             } else {
                 return "대답을 생성하지 못했습니다.";
             }
